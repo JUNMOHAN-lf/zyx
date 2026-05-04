@@ -6,24 +6,17 @@ import streamlit as st
 
 class AIChatClient:
     def __init__(self):
-        # 加载 DeepSeek 配置
-        self.api_key = st.secrets["DEEPSEEK_API_KEY"] or st.secrets["AI_API_KEY"]
-        self.api_url = st.secrets.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
+    # 加载 DeepSeek 配置
+    self.api_key = st.secrets["DEEPSEEK_API_KEY"] or st.secrets["AI_API_KEY"]
+    self.api_url = st.secrets.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
 
-        # 备用：通义千问
-        #self.qwen_api_key = st.secrets["QWEN_API_KEY"]
-        self.qwen_base_url = st.secrets["QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"]
-
-        # 检查 API 配置
-        if self.api_key:
-            print("DeepSeek API 已配置")
-            self.model_type = "deepseek"
-        elif self.qwen_api_key:
-            print("通义千问 API 已配置")
-            self.model_type = "tongyi"
-        else:
-            print("警告: 未配置API密钥，将使用模拟模式")
-            self.model_type = "mock"
+    # 检查 API 配置
+    if self.api_key:
+        print("DeepSeek API 已配置")
+        self.model_type = "deepseek"
+    else:
+        print("警告: 未配置API密钥，将使用模拟模式")
+        self.model_type = "mock"
 
     def build_prompt(self, user_question, student_profile=None):
         """构造个性化提示词"""
