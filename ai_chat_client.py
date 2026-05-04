@@ -6,17 +6,17 @@ import streamlit as st
 
 class AIChatClient:
     def __init__(self):
-    # 加载 DeepSeek 配置
-    self.api_key = st.secrets["DEEPSEEK_API_KEY"] or st.secrets["AI_API_KEY"]
-    self.api_url = st.secrets.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
+        # 加载 DeepSeek 配置
+        self.api_key = st.secrets["DEEPSEEK_API_KEY"] or st.secrets["AI_API_KEY"]
+        self.api_url = st.secrets.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
 
-    # 检查 API 配置
-    if self.api_key:
-        print("DeepSeek API 已配置")
-        self.model_type = "deepseek"
-    else:
-        print("警告: 未配置API密钥，将使用模拟模式")
-        self.model_type = "mock"
+        # 检查 API 配置
+        if self.api_key:
+            print("DeepSeek API 已配置")
+            self.model_type = "deepseek"
+        else:
+            print("警告: 未配置API密钥，将使用模拟模式")
+            self.model_type = "mock"
 
     def build_prompt(self, user_question, student_profile=None):
         """构造个性化提示词"""
@@ -88,37 +88,6 @@ class AIChatClient:
             print(f"DeepSeek API 调用失败: {e}")
             return None
 
-    def call_tongyi(self, prompt):
-        """调用通义千问 API"""
-        if not self.qwen_api_key:
-            return None
-
-        headers = {
-            "Authorization": f"Bearer {self.qwen_api_key}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "qwen-turbo",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_tokens": 2000
-        }
-
-        try:
-            print(f"正在调用通义千问 API...")
-            response = requests.post(
-                f"{self.qwen_base_url}/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=60
-            )
-            response.raise_for_status()
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-        except Exception as e:
-            print(f"通义千问 API 调用失败: {e}")
-            return None
-
     def get_fallback_answer(self, user_question):
         """兜底回答（当 API 调用失败时）"""
         return f"""抱歉，AI服务暂时无法响应您的问题「{user_question[:50]}」。
@@ -138,12 +107,6 @@ class AIChatClient:
         # 尝试调用 DeepSeek
         if self.model_type == "deepseek" and self.api_key:
             answer = self.call_deepseek(prompt)
-            if answer:
-                return answer
-
-        # 尝试调用通义千问
-        if self.qwen_api_key and answer is None:
-            answer = self.call_tongyi(prompt)
             if answer:
                 return answer
 
