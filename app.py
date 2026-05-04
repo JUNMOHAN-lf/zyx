@@ -21,7 +21,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
-import easyocr
+import pytesseract
+from PIL import Image
 import numpy as np
 from PIL import Image
 import io
@@ -444,14 +445,15 @@ class EnhancedResumeParser:
     def _extract_image_text(uploaded_file) -> str:
         """使用OCR提取图片中的文字"""
         try:
-            reader = easyocr.Reader(['ch_sim', 'en'], gpu=False, verbose=False)
+           
             image = Image.open(io.BytesIO(uploaded_file.read()))
             image_np = np.array(image)
-            results = reader.readtext(image_np, detail=0, paragraph=True)
+            image_pil = Image.fromarray(image_np)
+            results = pytesseract.image_to_string(image_pil, lang='chi_sim+eng')
             text = "\n".join(results)
             return text if text.strip() else "未能从图片中识别出文字"
         except ImportError:
-            return "请安装easyocr和Pillow: pip install easyocr pillow"
+            return "请安装pytesseract和Pillow: pip install pytesseract pillow"
         except Exception as e:
             return f"图片OCR识别错误: {str(e)}"
 
