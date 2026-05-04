@@ -29,7 +29,7 @@ import tempfile
 import subprocess
 from bs4 import BeautifulSoup
 import pdfplumber
-from dotenv import load_dotenv
+import streamlit as st
 from ai_chat_client import ai_chat_client
 from chat_floating_v2 import render_floating_chat
 
@@ -2538,7 +2538,7 @@ class LLMClient:
 
     def __init__(self):
         import os
-        self.api_key = os.getenv("AI_API_KEY", "sk-42a21eb1dea14df8875dd923c3881d49")
+        self.api_key = st.secrets["AI_API_KEY", "sk-42a21eb1dea14df8875dd923c3881d49"]
         self.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         self.model = "qwen-turbo"
 
