@@ -2540,7 +2540,7 @@ class LLMClient:
 
     def __init__(self):
         import os
-        self.api_key = st.secrets["AI_API_KEY", "sk-42a21eb1dea14df8875dd923c3881d49"]
+        self.api_key = st.secrets.get("AI_API_KEY") or st.secrets.get("DEEPSEEK_API_KEY")
         self.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         self.model = "qwen-turbo"
 
