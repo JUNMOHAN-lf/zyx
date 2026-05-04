@@ -16,3 +16,4 @@ uvicorn
 jieba
 matplotlib
 pillow
+pytesseract
