@@ -11,7 +11,7 @@ class AIChatClient:
         self.api_url = st.secrets.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
 
         # 备用：通义千问
-        self.qwen_api_key = st.secrets["QWEN_API_KEY"]
+        #self.qwen_api_key = st.secrets["QWEN_API_KEY"]
         self.qwen_base_url = st.secrets["QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"]
 
         # 检查 API 配置
