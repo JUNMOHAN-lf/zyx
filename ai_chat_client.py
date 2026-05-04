@@ -2,7 +2,7 @@
 import os
 import requests
 import json
-from dotenv import load_dotenv
+import streamlit as st
 
 # 加载环境变量
 load_dotenv()
@@ -11,12 +11,12 @@ load_dotenv()
 class AIChatClient:
     def __init__(self):
         # 加载 DeepSeek 配置
-        self.api_key = os.getenv("DEEPSEEK_API_KEY") or os.getenv("AI_API_KEY")
-        self.api_url = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
+        self.api_key = st.secrets["DEEPSEEK_API_KEY"] or st.secrets[AI_API_KEY"]
+        self.api_url = st.secrets["DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions"]
 
         # 备用：通义千问
-        self.qwen_api_key = os.getenv("QWEN_API_KEY")
-        self.qwen_base_url = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        self.qwen_api_key = st.secrets["QWEN_API_KEY"]
+        self.qwen_base_url = st.secrets["QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"]
 
         # 检查 API 配置
         if self.api_key:
