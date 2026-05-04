@@ -18,3 +18,4 @@ matplotlib
 pillow
 pytesseract
 reportlab
+beautifulsoup4
