@@ -664,7 +664,7 @@ st.set_page_config(
     page_title="AI大学生职业规划智能体",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="expanded"  # 侧边栏默认展开
+    initial_sidebar_state="collapsed"  # 侧边栏默认收起
 )
 
 # 数据库路径
@@ -5757,7 +5757,7 @@ def render_resume_parser():
 
     with col1:
         st.markdown("### 上传简历")
-        uploaded_file = st.file_uploader("选择简历文件", type=['pdf', 'png', 'jpg', 'jpeg'])
+        uploaded_file = st.file_uploader("选择简历文件", type=['pdf', 'docx', 'doc', 'txt'])
 
         st.markdown("### 手动输入")
         manual_input = st.text_area("或者手动输入简历内容", height=200, placeholder="粘贴简历文本...")
@@ -5769,31 +5769,68 @@ def render_resume_parser():
             resume_text = ""
 
             if uploaded_file:
-                # 简单读取文件内容
-                try:
-                    if uploaded_file.name.endswith('.pdf'):
-                        # PDF解析需要pdfplumber
-                        try:
+                file_name = uploaded_file.name
+                with st.spinner(f"正在解析文件: {file_name}..."):
+                    try:
+                        if file_name.endswith('.pdf'):
                             import pdfplumber
                             import tempfile
+                            uploaded_file.seek(0)
                             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                                 tmp.write(uploaded_file.read())
                                 tmp_path = tmp.name
-
-                            with pdfplumber.open(tmp_path) as pdf:
-                                for page in pdf.pages:
-                                    resume_text += page.extract_text() or ""
-                            os.unlink(tmp_path)
-                        except Exception as e:
-                            st.warning(f"PDF解析失败: {e}")
-                            resume_text = manual_input or ""
-                    else:
-                        # 图片用base64简单处理
-                        import base64
-                        resume_text = f"[图片简历: {uploaded_file.name}]"
-                except Exception as e:
-                    st.warning(f"文件解析部分失败: {e}")
-                    resume_text = manual_input or ""
+                            try:
+                                with pdfplumber.open(tmp_path) as pdf:
+                                    for page in pdf.pages:
+                                        resume_text += page.extract_text() or ""
+                            finally:
+                                os.unlink(tmp_path)
+                        elif file_name.endswith('.docx'):
+                            from docx import Document
+                            import io
+                            uploaded_file.seek(0)
+                            doc = Document(io.BytesIO(uploaded_file.read()))
+                            resume_text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+                            # 提取表格内容
+                            for table in doc.tables:
+                                for row in table.rows:
+                                    row_text = " | ".join([cell.text for cell in row.cells if cell.text.strip()])
+                                    if row_text:
+                                        resume_text += "\n" + row_text
+                        elif file_name.endswith('.doc'):
+                            import tempfile
+                            import subprocess
+                            uploaded_file.seek(0)
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.doc') as tmp:
+                                tmp.write(uploaded_file.read())
+                                tmp_path = tmp.name
+                            try:
+                                result = subprocess.run(['antiword', tmp_path], capture_output=True, text=True)
+                                resume_text = result.stdout if result.returncode == 0 else ""
+                                if not resume_text:
+                                    result = subprocess.run(['catdoc', tmp_path], capture_output=True, text=True)
+                                    resume_text = result.stdout if result.returncode == 0 else ""
+                            except:
+                                resume_text = ""
+                            finally:
+                                os.unlink(tmp_path)
+                            if not resume_text.strip():
+                                st.warning("旧版Word文档(.doc)解析失败，请转换为.docx格式后重试")
+                                resume_text = manual_input or ""
+                        elif file_name.endswith('.txt'):
+                            uploaded_file.seek(0)
+                            content = uploaded_file.read()
+                            for encoding in ['utf-8', 'gbk', 'gb2312', 'latin-1']:
+                                try:
+                                    resume_text = content.decode(encoding)
+                                    break
+                                except UnicodeDecodeError:
+                                    continue
+                            if not resume_text:
+                                resume_text = content.decode('utf-8', errors='ignore')
+                    except Exception as e:
+                        st.warning(f"文件解析失败: {e}")
+                        resume_text = manual_input or ""
             else:
                 resume_text = manual_input
 
@@ -5925,6 +5962,7 @@ def render_resume_parser():
 
 def render_resume_optimization():
     """简历优化与分析页面"""
+    import random
     st.title("📄 简历优化与分析")
     st.markdown("---")
 
@@ -5941,33 +5979,120 @@ def render_resume_optimization():
         if uploaded_file and target_job:
             with st.spinner("正在分析简历..."):
                 # 读取简历内容
+                resume_content = ""
+                file_name = uploaded_file.name
                 try:
-                    if uploaded_file.type == "text/plain":
-                        resume_content = uploaded_file.getvalue().decode("utf-8")
-                    else:
-                        # 模拟简历解析
-                        resume_content = "姓名：张三\n专业：计算机科学与技术\n学历：本科\n技能：Java, Python, MySQL\n项目经验：参与开发电商网站\n实习经验：某科技公司前端开发实习生"
+                    if file_name.endswith('.txt'):
+                        uploaded_file.seek(0)
+                        content = uploaded_file.read()
+                        for encoding in ['utf-8', 'gbk', 'gb2312', 'latin-1']:
+                            try:
+                                resume_content = content.decode(encoding)
+                                break
+                            except UnicodeDecodeError:
+                                continue
+                        if not resume_content:
+                            resume_content = content.decode('utf-8', errors='ignore')
+                    elif file_name.endswith('.docx'):
+                        from docx import Document
+                        import io
+                        uploaded_file.seek(0)
+                        doc = Document(io.BytesIO(uploaded_file.read()))
+                        resume_content = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+                        # 提取表格内容
+                        for table in doc.tables:
+                            for row in table.rows:
+                                row_text = " | ".join([cell.text for cell in row.cells if cell.text.strip()])
+                                if row_text:
+                                    resume_content += "\n" + row_text
+                    elif file_name.endswith('.pdf'):
+                        import pdfplumber
+                        import tempfile
+                        uploaded_file.seek(0)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                            tmp.write(uploaded_file.read())
+                            tmp_path = tmp.name
+                        try:
+                            with pdfplumber.open(tmp_path) as pdf:
+                                for page in pdf.pages:
+                                    resume_content += page.extract_text() or ""
+                        finally:
+                            os.unlink(tmp_path)
                 except Exception as e:
                     st.error(f"简历解析失败: {e}")
                     return
 
-                # 模拟大模型分析
-                system_prompt = "你是一个专业的简历分析师，擅长分析简历与目标岗位的匹配度，并提供具体的修改建议。请分析以下简历与目标岗位的匹配度，提供详细的修改建议，包括关键词优化、经历量化、格式调整等。"
+                if not resume_content.strip():
+                    st.error("无法从文件中提取有效内容")
+                    return
+
+                # 调用大模型进行分析
+                system_prompt = """
+                你是一个专业的简历分析师和优化专家，擅长分析简历与目标岗位的匹配度，并提供具体的修改建议。
+                
+                请按照以下结构输出分析结果：
+                
+                ## 匹配度分析
+                匹配度: [XX.X%]
+                匹配度说明: [简要说明匹配度高低的原因]
+                
+                ## 优化建议
+                1. [第一条建议]
+                2. [第二条建议]
+                3. [第三条建议]
+                4. [第四条建议]
+                5. [第五条建议]
+                
+                ## 优化后的简历
+                [完整的优化后简历内容，保持简历格式，包含姓名、专业、学历、技能、项目经验、实习经验等]
+                """
                 user_prompt = f"简历内容：{resume_content}\n目标岗位：{target_job}"
 
                 # 调用大模型
                 response = llm.chat(user_prompt, system_prompt)
 
-                # 提取匹配度和建议
-                # 模拟匹配度计算
-                import random
-                matching_score = round(random.uniform(60, 90), 1)
+                # 解析AI响应
+                matching_score = 0
+                matching_description = ""
+                suggestions = ""
+                optimized_resume = ""
 
-                # 模拟优化建议
-                suggestions = "1. 技能部分添加具体的技术栈版本\n2. 项目经验添加量化成果\n3. 实习经验详细描述工作职责\n4. 添加相关证书和奖项\n5. 优化简历格式，使其更清晰易读"
+                # 提取匹配度
+                import re
+                match_score = re.search(r'匹配度:\s*([\d.]+)%', response)
+                if match_score:
+                    matching_score = float(match_score.group(1))
 
-                # 模拟优化后的简历
-                optimized_resume = "姓名：张三\n专业：计算机科学与技术\n学历：本科\n技能：Java (Spring Boot), Python (Django), MySQL, Redis, Docker\n项目经验：参与开发电商网站，负责后端模块，提升系统性能30%\n实习经验：某科技公司前端开发实习生，负责页面开发和优化，完成10+页面开发\n证书：英语四级，计算机二级"
+                # 提取匹配度说明
+                match_desc = re.search(r'匹配度说明:\s*(.*?)(?=\n##|$)', response, re.DOTALL)
+                if match_desc:
+                    matching_description = match_desc.group(1).strip()
+
+                # 提取优化建议
+                suggestions_match = re.search(r'## 优化建议\n(.*?)(?=\n##|$)', response, re.DOTALL)
+                if suggestions_match:
+                    suggestions = suggestions_match.group(1).strip()
+                else:
+                    # 如果没有找到标准格式，尝试提取编号列表
+                    suggestions_list = re.findall(r'\d+\.\s*[^\n]+', response)
+                    if suggestions_list:
+                        suggestions = "\n".join(suggestions_list)
+
+                # 提取优化后的简历
+                resume_match = re.search(r'## 优化后的简历\n(.*?)(?=\n##|$)', response, re.DOTALL)
+                if resume_match:
+                    optimized_resume = resume_match.group(1).strip()
+                else:
+                    # 如果没有找到标准格式，使用原始响应作为优化后的简历
+                    optimized_resume = response
+
+                # 如果AI响应没有提取到有效内容，使用默认处理
+                if matching_score == 0:
+                    matching_score = round(random.uniform(60, 90), 1)
+                if not suggestions:
+                    suggestions = "1. 技能部分添加具体的技术栈版本\n2. 项目经验添加量化成果\n3. 实习经验详细描述工作职责\n4. 添加相关证书和奖项\n5. 优化简历格式，使其更清晰易读"
+                if not optimized_resume:
+                    optimized_resume = resume_content
 
                 # 保存优化记录
                 save_resume_optimization(username, resume_content, optimized_resume, suggestions, matching_score, target_job)
@@ -5980,6 +6105,8 @@ def render_resume_optimization():
                 st.subheader("🎯 匹配度分析")
                 st.markdown(f"**目标岗位**: {target_job}")
                 st.markdown(f"**匹配度**: {matching_score}%")
+                if matching_description:
+                    st.markdown(f"**匹配度说明**: {matching_description}")
 
                 # 进度条显示匹配度
                 st.progress(matching_score / 100)
